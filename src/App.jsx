@@ -48,24 +48,26 @@ export default function App() {
         <p className="subtitle">One task at a time. New stuff goes on top.</p>
       </header>
       <AddTaskForm onPush={push} />
-      {stack.length === 0 ? (
-        <p className="empty">Stack is empty — nothing to focus on. Add a task to begin.</p>
-      ) : (
-        <ol className="stack">
-          {stack
-            .slice()
-            .reverse()
-            .map((item, reverseIndex) => (
-              <StackItem
-                key={item.id}
-                item={item}
-                isTop={item.id === topId}
-                depth={reverseIndex}
-                onDone={pop}
-              />
-            ))}
-        </ol>
-      )}
+      <div className="stack-box">
+        {stack.length === 0 ? (
+          <p className="empty">Stack is empty — nothing to focus on. Add a task to begin.</p>
+        ) : (
+          <ol className="stack">
+            {stack
+              .slice()
+              .reverse()
+              .map((item, reverseIndex) => (
+                <StackItem
+                  key={item.id}
+                  item={item}
+                  isTop={item.id === topId}
+                  depth={reverseIndex}
+                  onDone={pop}
+                />
+              ))}
+          </ol>
+        )}
+      </div>
       {waiting > 0 && (
         <p className="depth-hint">
           {waiting} task{waiting === 1 ? '' : 's'} waiting underneath
