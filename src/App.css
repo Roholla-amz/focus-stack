@@ -122,7 +122,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   filter: brightness(calc(1 - min(var(--depth, 0) * 0.14, 0.55)));
-  animation: drop-in 0.25s ease-out;
+  animation: drop-in 0.55s ease-out;
 }
 
 .stack-item.top {
@@ -168,13 +168,54 @@
   font-size: 0.85rem;
 }
 
+.stack-item.popping {
+  position: relative;
+  z-index: 2;
+  pointer-events: none;
+  animation: pop-out 0.9s forwards;
+}
+
 @keyframes drop-in {
-  from {
-    transform: translateY(-12px);
+  0% {
+    transform: translateY(-64px);
     opacity: 0;
   }
-  to {
+  55% {
     transform: translateY(0);
     opacity: 1;
+  }
+  70% {
+    transform: translateY(-8px);
+  }
+  85% {
+    transform: translateY(0);
+  }
+  92% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-out {
+  0% {
+    transform: translate(0, 0) rotate(0deg) scale(1);
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+  30% {
+    transform: translate(var(--drift, 0px), -80px) rotate(0deg) scale(1.06);
+    opacity: 1;
+    animation-timing-function: linear;
+  }
+  45% {
+    transform: translate(var(--drift, 0px), -80px) rotate(0deg) scale(1.06);
+    opacity: 1;
+    animation-timing-function: cubic-bezier(0.55, 0, 1, 0.45);
+  }
+  100% {
+    transform: translate(calc(var(--drift, 0px) * 1.5), 130px) rotate(var(--tilt, 9deg)) scale(0.92);
+    opacity: 0;
   }
 }

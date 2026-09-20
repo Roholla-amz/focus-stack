@@ -5,6 +5,7 @@ import StackItem from './components/StackItem'
 import './App.css'
 
 const STORAGE_KEY = 'focus-stack'
+const POP_ANIMATION_MS = 950
 
 function loadStack() {
   try {
@@ -18,6 +19,7 @@ function loadStack() {
 
 export default function App() {
   const [stack, setStack] = useState(loadStack)
+  const [popping, setPopping] = useState(null)
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stack))
@@ -28,14 +30,20 @@ export default function App() {
   }
 
   const pop = () => {
-    if (stack.length === 0) return
+    if (stack.length === 0 || popping) return
+    const top = stack[stack.length - 1]
+    const drift = (Math.random() < 0.5 ? -1 : 1) * (30 + Math.random() * 30)
+    setPopping({ id: top.id, drift })
     confetti({
       particleCount: 90,
       spread: 70,
       origin: { y: 0.7 },
       colors: ['#a78bfa', '#f472b6', '#34d399', '#fbbf24'],
     })
-    setStack(stack.slice(0, -1))
+    setTimeout(() => {
+      setStack((prev) => prev.filter((item) => item.id !== top.id))
+      setPopping(null)
+    }, POP_ANIMATION_MS)
   }
 
   const topId = stack.length > 0 ? stack[stack.length - 1].id : null
@@ -61,6 +69,8 @@ export default function App() {
                   key={item.id}
                   item={item}
                   isTop={item.id === topId}
+                  isPopping={item.id === popping?.id}
+                  drift={item.id === popping?.id ? popping.drift : 0}
                   depth={reverseIndex}
                   onDone={pop}
                 />
