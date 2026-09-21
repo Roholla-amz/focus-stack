@@ -115,7 +115,7 @@
 
 .stack-item {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
   background: var(--surface);
@@ -143,11 +143,9 @@
   border-color: var(--accent);
   box-shadow: 0 0 24px var(--accent-glow);
   filter: none;
-  flex-wrap: wrap;
 }
 
 .focus-label {
-  width: 100%;
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -155,12 +153,38 @@
   color: var(--accent);
 }
 
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .item-text {
-  flex: 1;
+  flex: 0 1 auto;
   overflow-wrap: anywhere;
+  cursor: text;
+}
+
+.item-text:hover {
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+
+.edit-input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--accent);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  outline: none;
 }
 
 .done-btn {
+  margin-left: auto;
   padding: 8px 16px;
   border-radius: 8px;
   border: none;

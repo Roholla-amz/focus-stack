@@ -41,6 +41,16 @@ export default function App() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
+  const renameItem = (id, text) => {
+    const trimmed = text.trim()
+    if (trimmed.length === 0) return
+    setStack((prev) => {
+      const existing = prev.find((item) => item.id === id)
+      if (!existing || existing.text === trimmed) return prev
+      return prev.map((item) => (item.id === id ? { ...item, text: trimmed } : item))
+    })
+  }
+
   const handleDragEnd = (event) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
@@ -114,6 +124,7 @@ export default function App() {
                       drift={item.id === popping?.id ? popping.drift : 0}
                       depth={reverseIndex}
                       onDone={pop}
+                      onRename={renameItem}
                     />
                   ))}
               </ol>
