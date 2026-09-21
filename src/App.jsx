@@ -1,5 +1,20 @@
 import { useEffect, useState } from 'react'
 import confetti from 'canvas-confetti'
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import AddTaskForm from './components/AddTaskForm'
 import StackItem from './components/StackItem'
 import './App.css'
@@ -20,6 +35,22 @@ function loadStack() {
 export default function App() {
   const [stack, setStack] = useState(loadStack)
   const [popping, setPopping] = useState(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = (event) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setStack((prev) => {
+      const from = prev.findIndex((item) => item.id === active.id)
+      const to = prev.findIndex((item) => item.id === over.id)
+      if (from === -1 || to === -1) return prev
+      return arrayMove(prev, from, to)
+    })
+  }
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stack))
@@ -60,22 +91,34 @@ export default function App() {
         {stack.length === 0 ? (
           <p className="empty">Stack is empty — nothing to focus on. Add a task to begin.</p>
         ) : (
-          <ol className="stack">
-            {stack
-              .slice()
-              .reverse()
-              .map((item, reverseIndex) => (
-                <StackItem
-                  key={item.id}
-                  item={item}
-                  isTop={item.id === topId}
-                  isPopping={item.id === popping?.id}
-                  drift={item.id === popping?.id ? popping.drift : 0}
-                  depth={reverseIndex}
-                  onDone={pop}
-                />
-              ))}
-          </ol>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            modifiers={[restrictToVerticalAxis]}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={stack.slice().reverse().map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <ol className="stack">
+                {stack
+                  .slice()
+                  .reverse()
+                  .map((item, reverseIndex) => (
+                    <StackItem
+                      key={item.id}
+                      item={item}
+                      isTop={item.id === topId}
+                      isPopping={item.id === popping?.id}
+                      drift={item.id === popping?.id ? popping.drift : 0}
+                      depth={reverseIndex}
+                      onDone={pop}
+                    />
+                  ))}
+              </ol>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
       {waiting > 0 && (

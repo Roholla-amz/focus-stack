@@ -123,6 +123,19 @@
   border-radius: 12px;
   filter: brightness(calc(1 - min(var(--depth, 0) * 0.14, 0.55)));
   animation: drop-in 0.55s ease-out;
+  touch-action: none;
+  cursor: grab;
+}
+
+.stack-item:active {
+  cursor: grabbing;
+}
+
+.stack-item.dragging {
+  position: relative;
+  z-index: 10;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+  cursor: grabbing;
 }
 
 .stack-item.top {
