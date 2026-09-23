@@ -17,6 +17,7 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import AddTaskForm from './components/AddTaskForm'
 import StackItem from './components/StackItem'
+import { adjustLinksForTrim } from './lib/links'
 import './App.css'
 
 const STORAGE_KEY = 'focus-stack'
@@ -26,7 +27,24 @@ function loadStack() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .filter((item) => item && typeof item.text === 'string')
+      .map((item) => ({
+        ...item,
+        links: Array.isArray(item.links)
+          ? item.links.filter(
+              (l) =>
+                l &&
+                typeof l.url === 'string' &&
+                Number.isInteger(l.start) &&
+                Number.isInteger(l.end) &&
+                l.start >= 0 &&
+                l.end > l.start &&
+                l.end <= item.text.length
+            )
+          : [],
+      }))
   } catch {
     return []
   }
@@ -41,13 +59,16 @@ export default function App() {
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   )
 
-  const renameItem = (id, text) => {
-    const trimmed = text.trim()
-    if (trimmed.length === 0) return
+  const renameItem = (id, rawText, rawLinks) => {
+    const { text, links } = adjustLinksForTrim(rawText, rawLinks ?? [])
+    if (text.length === 0) return
     setStack((prev) => {
       const existing = prev.find((item) => item.id === id)
-      if (!existing || existing.text === trimmed) return prev
-      return prev.map((item) => (item.id === id ? { ...item, text: trimmed } : item))
+      if (!existing) return prev
+      if (existing.text === text && JSON.stringify(existing.links) === JSON.stringify(links)) {
+        return prev
+      }
+      return prev.map((item) => (item.id === id ? { ...item, text, links } : item))
     })
   }
 
@@ -66,8 +87,13 @@ export default function App() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stack))
   }, [stack])
 
-  const push = (text) => {
-    setStack((prev) => [...prev, { id: crypto.randomUUID(), text, createdAt: Date.now() }])
+  const push = (rawText, rawLinks) => {
+    const { text, links } = adjustLinksForTrim(rawText, rawLinks ?? [])
+    if (text.length === 0) return
+    setStack((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), text, links, createdAt: Date.now() },
+    ])
   }
 
   const pop = () => {

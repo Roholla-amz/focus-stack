@@ -1,11 +1,37 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import useLinkableText from '../hooks/useLinkableText'
+import LinkChips from './LinkChips'
+import LinkPopover from './LinkPopover'
+
+function renderTextWithLinks(text, links) {
+  const parts = []
+  let pos = 0
+  ;(links ?? []).forEach((l, i) => {
+    if (l.start > pos) parts.push(<span key={`t${i}`}>{text.slice(pos, l.start)}</span>)
+    parts.push(
+      <a
+        key={`l${i}`}
+        href={l.url}
+        target="_blank"
+        rel="noreferrer"
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
+        {text.slice(l.start, l.end)}
+      </a>
+    )
+    pos = l.end
+  })
+  if (pos < text.length) parts.push(<span key="tail">{text.slice(pos)}</span>)
+  return parts
+}
 
 export default function StackItem({ item, isTop, isPopping, drift, depth, onDone, onRename }) {
   const [editing, setEditing] = useState(false)
-  const [draft, setDraft] = useState(item.text)
-  const inputRef = useRef(null)
+  const edit = useLinkableText()
   const pointerStart = useRef(null)
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -13,25 +39,28 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
   })
 
   useEffect(() => {
-    if (editing) inputRef.current?.select()
+    if (editing) {
+      const input = edit.inputProps.ref.current
+      if (input) {
+        input.focus()
+        input.setSelectionRange(input.value.length, input.value.length)
+      }
+    }
   }, [editing])
 
   const startEdit = (e) => {
     const start = pointerStart.current
     if (start && Math.hypot(e.clientX - start[0], e.clientY - start[1]) > 8) return
-    setDraft(item.text)
+    edit.beginEdit(item.text, item.links ?? [])
     setEditing(true)
   }
 
   const commit = () => {
     setEditing(false)
-    onRename(item.id, draft)
+    onRename(item.id, edit.text, edit.links)
   }
 
-  const cancel = () => {
-    setEditing(false)
-    setDraft(item.text)
-  }
+  const cancel = () => setEditing(false)
 
   const classes = ['stack-item']
   if (isTop) classes.push('top')
@@ -59,19 +88,16 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
       <div className="item-row">
         {editing ? (
           <input
-            ref={inputRef}
+            {...edit.inputProps}
             className="edit-input"
             type="text"
-            value={draft}
             maxLength={80}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
+            onPointerDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
               e.stopPropagation()
               if (e.key === 'Enter') commit()
               if (e.key === 'Escape') cancel()
             }}
-            onPointerDown={(e) => e.stopPropagation()}
           />
         ) : (
           <span
@@ -85,12 +111,12 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
               e.stopPropagation()
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault()
-                setDraft(item.text)
+                edit.beginEdit(item.text, item.links ?? [])
                 setEditing(true)
               }
             }}
           >
-            {item.text}
+            {renderTextWithLinks(item.text, item.links)}
           </span>
         )}
         {isTop && (
@@ -99,6 +125,16 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
           </button>
         )}
       </div>
+      {editing && <LinkChips text={edit.text} links={edit.links} onRemove={edit.removeLink} />}
+      {editing && edit.popover && (
+        <LinkPopover
+          key={`${edit.popover.start}:${edit.popover.end}`}
+          popover={edit.popover}
+          onApply={edit.applyUrl}
+          onCancel={edit.cancelPopover}
+          onKeep={edit.keepPopover}
+        />
+      )}
     </li>
   )
 }
