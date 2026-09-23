@@ -2,32 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import useLinkableText from '../hooks/useLinkableText'
+import LinkedText from './LinkedText'
 import LinkChips from './LinkChips'
 import LinkPopover from './LinkPopover'
-
-function renderTextWithLinks(text, links) {
-  const parts = []
-  let pos = 0
-  ;(links ?? []).forEach((l, i) => {
-    if (l.start > pos) parts.push(<span key={`t${i}`}>{text.slice(pos, l.start)}</span>)
-    parts.push(
-      <a
-        key={`l${i}`}
-        href={l.url}
-        target="_blank"
-        rel="noreferrer"
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
-      >
-        {text.slice(l.start, l.end)}
-      </a>
-    )
-    pos = l.end
-  })
-  if (pos < text.length) parts.push(<span key="tail">{text.slice(pos)}</span>)
-  return parts
-}
 
 export default function StackItem({ item, isTop, isPopping, drift, depth, onDone, onRename }) {
   const [editing, setEditing] = useState(false)
@@ -116,7 +93,7 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
               }
             }}
           >
-            {renderTextWithLinks(item.text, item.links)}
+            <LinkedText text={item.text} links={item.links} />
           </span>
         )}
         {isTop && (

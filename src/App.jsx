@@ -17,41 +17,52 @@ import {
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import AddTaskForm from './components/AddTaskForm'
 import StackItem from './components/StackItem'
+import DonePanel from './components/DonePanel'
 import { adjustLinksForTrim } from './lib/links'
 import './App.css'
 
 const STORAGE_KEY = 'focus-stack'
 const POP_ANIMATION_MS = 950
 
-function loadStack() {
+function sanitizeItem(item) {
+  if (!item || typeof item.text !== 'string') return null
+  return {
+    id: typeof item.id === 'string' ? item.id : crypto.randomUUID(),
+    text: item.text,
+    links: Array.isArray(item.links)
+      ? item.links.filter(
+          (l) =>
+            l &&
+            typeof l.url === 'string' &&
+            Number.isInteger(l.start) &&
+            Number.isInteger(l.end) &&
+            l.start >= 0 &&
+            l.end > l.start &&
+            l.end <= item.text.length
+        )
+      : [],
+    createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    doneAt: typeof item.doneAt === 'number' ? item.doneAt : null,
+  }
+}
+
+function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    const parsed = raw ? JSON.parse(raw) : []
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter((item) => item && typeof item.text === 'string')
-      .map((item) => ({
-        ...item,
-        links: Array.isArray(item.links)
-          ? item.links.filter(
-              (l) =>
-                l &&
-                typeof l.url === 'string' &&
-                Number.isInteger(l.start) &&
-                Number.isInteger(l.end) &&
-                l.start >= 0 &&
-                l.end > l.start &&
-                l.end <= item.text.length
-            )
-          : [],
-      }))
+    const parsed = raw ? JSON.parse(raw) : null
+    const stackRaw = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.stack) ? parsed.stack : []
+    const doneRaw = Array.isArray(parsed?.done) ? parsed.done : []
+    return {
+      stack: stackRaw.map(sanitizeItem).filter(Boolean),
+      done: doneRaw.map(sanitizeItem).filter(Boolean),
+    }
   } catch {
-    return []
+    return { stack: [], done: [] }
   }
 }
 
 export default function App() {
-  const [stack, setStack] = useState(loadStack)
+  const [{ stack, done }, setState] = useState(loadState)
   const [popping, setPopping] = useState(null)
 
   const sensors = useSensors(
@@ -62,38 +73,48 @@ export default function App() {
   const renameItem = (id, rawText, rawLinks) => {
     const { text, links } = adjustLinksForTrim(rawText, rawLinks ?? [])
     if (text.length === 0) return
-    setStack((prev) => {
-      const existing = prev.find((item) => item.id === id)
+    setState((prev) => {
+      const existing = prev.stack.find((item) => item.id === id)
       if (!existing) return prev
       if (existing.text === text && JSON.stringify(existing.links) === JSON.stringify(links)) {
         return prev
       }
-      return prev.map((item) => (item.id === id ? { ...item, text, links } : item))
+      return {
+        ...prev,
+        stack: prev.stack.map((item) => (item.id === id ? { ...item, text, links } : item)),
+      }
     })
   }
 
   const handleDragEnd = (event) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    setStack((prev) => {
-      const from = prev.findIndex((item) => item.id === active.id)
-      const to = prev.findIndex((item) => item.id === over.id)
+    setState((prev) => {
+      const from = prev.stack.findIndex((item) => item.id === active.id)
+      const to = prev.stack.findIndex((item) => item.id === over.id)
       if (from === -1 || to === -1) return prev
-      return arrayMove(prev, from, to)
+      return { ...prev, stack: arrayMove(prev.stack, from, to) }
     })
   }
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stack))
-  }, [stack])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ stack, done }))
+  }, [stack, done])
 
   const push = (rawText, rawLinks) => {
     const { text, links } = adjustLinksForTrim(rawText, rawLinks ?? [])
     if (text.length === 0) return
-    setStack((prev) => [
+    setState((prev) => ({
       ...prev,
-      { id: crypto.randomUUID(), text, links, createdAt: Date.now() },
-    ])
+      stack: [
+        ...prev.stack,
+        { id: crypto.randomUUID(), text, links, createdAt: Date.now() },
+      ],
+    }))
+  }
+
+  const removeDone = (id) => {
+    setState((prev) => ({ ...prev, done: prev.done.filter((item) => item.id !== id) }))
   }
 
   const pop = () => {
@@ -108,7 +129,11 @@ export default function App() {
       colors: ['#a78bfa', '#f472b6', '#34d399', '#fbbf24'],
     })
     setTimeout(() => {
-      setStack((prev) => prev.filter((item) => item.id !== top.id))
+      setState((prev) => ({
+        ...prev,
+        stack: prev.stack.filter((item) => item.id !== top.id),
+        done: [{ ...top, doneAt: Date.now() }, ...prev.done],
+      }))
       setPopping(null)
     }, POP_ANIMATION_MS)
   }
@@ -163,6 +188,7 @@ export default function App() {
           {waiting} task{waiting === 1 ? '' : 's'} waiting underneath
         </p>
       )}
+      <DonePanel done={done} onRemove={removeDone} />
     </main>
   )
 }
