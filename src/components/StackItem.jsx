@@ -5,8 +5,9 @@ import useLinkableText from '../hooks/useLinkableText'
 import LinkedText from './LinkedText'
 import LinkChips from './LinkChips'
 import LinkPopover from './LinkPopover'
+import { formatDuration, formatAge } from '../lib/format'
 
-export default function StackItem({ item, isTop, isPopping, drift, depth, onDone, onRename }) {
+export default function StackItem({ item, isTop, isPopping, drift, depth, now, focusMs, onDone, onRename }) {
   const [editing, setEditing] = useState(false)
   const edit = useLinkableText()
   const pointerStart = useRef(null)
@@ -61,7 +62,12 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
       {...attributes}
       {...listeners}
     >
-      {isTop && <span className="focus-label">Current focus</span>}
+      {isTop && (
+        <div className="focus-meta">
+          <span className="focus-label">Current focus</span>
+          <span className="time-badge">{formatDuration(focusMs)}</span>
+        </div>
+      )}
       <div className="item-row">
         {editing ? (
           <input
@@ -95,6 +101,9 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, onDone
           >
             <LinkedText text={item.text} links={item.links} />
           </span>
+        )}
+        {!isTop && now - item.createdAt >= 60000 && (
+          <span className="wait-age">waiting {formatAge(now - item.createdAt)}</span>
         )}
         {isTop && (
           <button className="done-btn" onClick={onDone} onKeyDown={(e) => e.stopPropagation()}>

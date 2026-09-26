@@ -159,6 +159,27 @@
   color: var(--accent);
 }
 
+.focus-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.time-badge {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.wait-age {
+  margin-left: auto;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  opacity: 0.85;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
 .item-row {
   display: flex;
   align-items: center;

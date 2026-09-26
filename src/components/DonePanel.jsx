@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import LinkedText from './LinkedText'
+import { formatDuration } from '../lib/format'
 
 function formatTime(ts) {
   const d = new Date(ts)
@@ -42,7 +43,10 @@ export default function DonePanel({ done, onRemove }) {
                   <span className="done-item-text">
                     <LinkedText text={item.text} links={item.links} />
                   </span>
-                  <span className="done-item-time">{formatTime(item.doneAt)}</span>
+                  <span className="done-item-time">
+                    {formatTime(item.doneAt)}
+                    {item.timeSpent > 0 ? ` · focused ${formatDuration(item.timeSpent)}` : ''}
+                  </span>
                 </div>
                 <button
                   type="button"

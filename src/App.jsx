@@ -42,8 +42,22 @@ function sanitizeItem(item) {
         )
       : [],
     createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+    timeSpent:
+      typeof item.timeSpent === 'number' && item.timeSpent >= 0 ? item.timeSpent : 0,
     doneAt: typeof item.doneAt === 'number' ? item.doneAt : null,
   }
+}
+
+function settleFocus(stack, topSince, now) {
+  if (stack.length === 0) return { stack, topSince: null }
+  if (typeof topSince !== 'number') return { stack, topSince: now }
+  const elapsed = Math.max(0, now - topSince)
+  const idx = stack.length - 1
+  const top = stack[idx]
+  if (elapsed === 0) return { stack, topSince }
+  const settled = stack.slice()
+  settled[idx] = { ...top, timeSpent: (top.timeSpent ?? 0) + elapsed }
+  return { stack: settled, topSince: now }
 }
 
 function loadState() {
@@ -52,18 +66,25 @@ function loadState() {
     const parsed = raw ? JSON.parse(raw) : null
     const stackRaw = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.stack) ? parsed.stack : []
     const doneRaw = Array.isArray(parsed?.done) ? parsed.done : []
-    return {
-      stack: stackRaw.map(sanitizeItem).filter(Boolean),
-      done: doneRaw.map(sanitizeItem).filter(Boolean),
-    }
+    const stack = stackRaw.map(sanitizeItem).filter(Boolean)
+    const done = doneRaw.map(sanitizeItem).filter(Boolean)
+    const topSince =
+      typeof parsed?.topSince === 'number' ? parsed.topSince : stack.length > 0 ? Date.now() : null
+    return { stack, done, topSince }
   } catch {
-    return { stack: [], done: [] }
+    return { stack: [], done: [], topSince: null }
   }
 }
 
 export default function App() {
-  const [{ stack, done }, setState] = useState(loadState)
+  const [{ stack, done, topSince }, setState] = useState(loadState)
   const [popping, setPopping] = useState(null)
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -93,24 +114,35 @@ export default function App() {
       const from = prev.stack.findIndex((item) => item.id === active.id)
       const to = prev.stack.findIndex((item) => item.id === over.id)
       if (from === -1 || to === -1) return prev
-      return { ...prev, stack: arrayMove(prev.stack, from, to) }
+      const moved = arrayMove(prev.stack, from, to)
+      const oldTopId = prev.stack[prev.stack.length - 1]?.id
+      const newTopId = moved[moved.length - 1]?.id
+      if (oldTopId === newTopId) return { ...prev, stack: moved }
+      const now = Date.now()
+      const settled = settleFocus(prev.stack, prev.topSince, now)
+      return { ...prev, stack: arrayMove(settled.stack, from, to), topSince: now }
     })
   }
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ stack, done }))
-  }, [stack, done])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ stack, done, topSince }))
+  }, [stack, done, topSince])
 
   const push = (rawText, rawLinks) => {
     const { text, links } = adjustLinksForTrim(rawText, rawLinks ?? [])
     if (text.length === 0) return
-    setState((prev) => ({
-      ...prev,
-      stack: [
-        ...prev.stack,
-        { id: crypto.randomUUID(), text, links, createdAt: Date.now() },
-      ],
-    }))
+    setState((prev) => {
+      const now = Date.now()
+      const settled = settleFocus(prev.stack, prev.topSince, now)
+      return {
+        ...prev,
+        stack: [
+          ...settled.stack,
+          { id: crypto.randomUUID(), text, links, createdAt: now, timeSpent: 0 },
+        ],
+        topSince: now,
+      }
+    })
   }
 
   const removeDone = (id) => {
@@ -129,16 +161,27 @@ export default function App() {
       colors: ['#a78bfa', '#f472b6', '#34d399', '#fbbf24'],
     })
     setTimeout(() => {
-      setState((prev) => ({
-        ...prev,
-        stack: prev.stack.filter((item) => item.id !== top.id),
-        done: [{ ...top, doneAt: Date.now() }, ...prev.done],
-      }))
+      const poppedId = top.id
+      setState((prev) => {
+        const now = Date.now()
+        const settled = settleFocus(prev.stack, prev.topSince, now)
+        const popped = settled.stack.find((item) => item.id === poppedId)
+        if (!popped) return settled
+        return {
+          ...settled,
+          stack: settled.stack.filter((item) => item.id !== poppedId),
+          done: [{ ...popped, doneAt: now }, ...prev.done],
+        }
+      })
       setPopping(null)
     }, POP_ANIMATION_MS)
   }
 
-  const topId = stack.length > 0 ? stack[stack.length - 1].id : null
+  const topItem = stack.length > 0 ? stack[stack.length - 1] : null
+  const topId = topItem?.id ?? null
+  const focusMs = topItem
+    ? (topItem.timeSpent ?? 0) + (typeof topSince === 'number' ? now - topSince : 0)
+    : 0
   const waiting = stack.length - 1
 
   return (
@@ -174,6 +217,8 @@ export default function App() {
                       isPopping={item.id === popping?.id}
                       drift={item.id === popping?.id ? popping.drift : 0}
                       depth={reverseIndex}
+                      now={now}
+                      focusMs={item.id === topId ? focusMs : null}
                       onDone={pop}
                       onRename={renameItem}
                     />
