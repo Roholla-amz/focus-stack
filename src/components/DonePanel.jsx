@@ -43,10 +43,15 @@ export default function DonePanel({ done, onRemove }) {
                   <span className="done-item-text">
                     <LinkedText text={item.text} links={item.links} />
                   </span>
-                  <span className="done-item-time">
-                    {formatTime(item.doneAt)}
-                    {item.timeSpent > 0 ? ` · focused ${formatDuration(item.timeSpent)}` : ''}
-                  </span>
+                  <div className="done-item-meta">
+                    <span className="done-item-time">Created {formatTime(item.createdAt)}</span>
+                    <span className="done-item-time">Done {formatTime(item.doneAt)}</span>
+                    {item.timeSpent > 0 && (
+                      <span className="done-item-time">
+                        Focused {formatDuration(item.timeSpent)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <button
                   type="button"

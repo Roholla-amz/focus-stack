@@ -486,6 +486,12 @@
   text-underline-offset: 3px;
 }
 
+.done-item-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .done-item-time {
   color: var(--text-dim);
   font-size: 0.7rem;
