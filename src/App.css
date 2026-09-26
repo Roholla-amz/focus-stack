@@ -159,6 +159,44 @@
   color: var(--accent);
 }
 
+.app-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pause-btn {
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  margin-top: 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, filter 0.15s;
+}
+
+.pause-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.pause-btn.paused {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+
+.time-badge.paused {
+  opacity: 0.75;
+  font-style: italic;
+}
+
 .focus-meta {
   display: flex;
   align-items: baseline;

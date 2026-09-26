@@ -50,6 +50,7 @@ function sanitizeItem(item) {
 
 function settleFocus(stack, topSince, now) {
   if (stack.length === 0) return { stack, topSince: null }
+  if (topSince === null) return { stack, topSince: null }
   if (typeof topSince !== 'number') return { stack, topSince: now }
   const elapsed = Math.max(0, now - topSince)
   const idx = stack.length - 1
@@ -68,16 +69,37 @@ function loadState() {
     const doneRaw = Array.isArray(parsed?.done) ? parsed.done : []
     const stack = stackRaw.map(sanitizeItem).filter(Boolean)
     const done = doneRaw.map(sanitizeItem).filter(Boolean)
+    const paused = parsed?.paused === true
+    const pausedSince =
+      paused && typeof parsed?.pausedSince === 'number' ? parsed.pausedSince : null
+    let pausedTotalMs =
+      typeof parsed?.pausedTotalMs === 'number' && parsed.pausedTotalMs >= 0
+        ? parsed.pausedTotalMs
+        : 0
+    if (paused && pausedSince !== null) {
+      pausedTotalMs += Math.max(0, Date.now() - pausedSince)
+    }
     const topSince =
-      typeof parsed?.topSince === 'number' ? parsed.topSince : stack.length > 0 ? Date.now() : null
-    return { stack, done, topSince }
+      typeof parsed?.topSince === 'number'
+        ? parsed.topSince
+        : stack.length > 0 && !paused
+          ? Date.now()
+          : null
+    return {
+      stack,
+      done,
+      topSince: paused ? null : topSince,
+      paused,
+      pausedSince: paused ? Date.now() : null,
+      pausedTotalMs,
+    }
   } catch {
-    return { stack: [], done: [], topSince: null }
+    return { stack: [], done: [], topSince: null, paused: false, pausedSince: null, pausedTotalMs: 0 }
   }
 }
 
 export default function App() {
-  const [{ stack, done, topSince }, setState] = useState(loadState)
+  const [{ stack, done, topSince, paused, pausedSince, pausedTotalMs }, setState] = useState(loadState)
   const [popping, setPopping] = useState(null)
   const [now, setNow] = useState(() => Date.now())
 
@@ -120,13 +142,16 @@ export default function App() {
       if (oldTopId === newTopId) return { ...prev, stack: moved }
       const now = Date.now()
       const settled = settleFocus(prev.stack, prev.topSince, now)
-      return { ...prev, stack: arrayMove(settled.stack, from, to), topSince: now }
+      return { ...prev, stack: arrayMove(settled.stack, from, to), topSince: settled.topSince }
     })
   }
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ stack, done, topSince }))
-  }, [stack, done, topSince])
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ stack, done, topSince, paused, pausedSince, pausedTotalMs })
+    )
+  }, [stack, done, topSince, paused, pausedSince, pausedTotalMs])
 
   const push = (rawText, rawLinks) => {
     const { text, links } = adjustLinksForTrim(rawText, rawLinks ?? [])
@@ -140,7 +165,7 @@ export default function App() {
           ...settled.stack,
           { id: crypto.randomUUID(), text, links, createdAt: now, timeSpent: 0 },
         ],
-        topSince: now,
+        topSince: prev.paused ? null : now,
       }
     })
   }
@@ -166,8 +191,9 @@ export default function App() {
         const now = Date.now()
         const settled = settleFocus(prev.stack, prev.topSince, now)
         const popped = settled.stack.find((item) => item.id === poppedId)
-        if (!popped) return settled
+        if (!popped) return { ...prev, ...settled }
         return {
+          ...prev,
           ...settled,
           stack: settled.stack.filter((item) => item.id !== poppedId),
           done: [{ ...popped, doneAt: now }, ...prev.done],
@@ -177,18 +203,63 @@ export default function App() {
     }, POP_ANIMATION_MS)
   }
 
+  const togglePause = () => {
+    setState((prev) => {
+      const now = Date.now()
+      if (prev.paused) {
+        return {
+          ...prev,
+          paused: false,
+          pausedSince: null,
+          pausedTotalMs: prev.pausedTotalMs + Math.max(0, now - prev.pausedSince),
+          topSince: prev.stack.length > 0 ? now : null,
+        }
+      }
+      const settled = settleFocus(prev.stack, prev.topSince, now)
+      return {
+        ...prev,
+        stack: settled.stack,
+        topSince: null,
+        paused: true,
+        pausedSince: now,
+      }
+    })
+  }
+
   const topItem = stack.length > 0 ? stack[stack.length - 1] : null
   const topId = topItem?.id ?? null
   const focusMs = topItem
     ? (topItem.timeSpent ?? 0) + (typeof topSince === 'number' ? now - topSince : 0)
     : 0
+  const effectiveNow =
+    paused && typeof pausedSince === 'number' ? pausedSince - pausedTotalMs : now - pausedTotalMs
   const waiting = stack.length - 1
 
   return (
     <main className="app">
-      <header>
-        <h1 className="title">Focus Stack</h1>
-        <p className="subtitle">One task at a time. New stuff goes on top.</p>
+      <header className="app-header">
+        <div>
+          <h1 className="title">Focus Stack</h1>
+          <p className="subtitle">One task at a time. New stuff goes on top.</p>
+        </div>
+        <button
+          type="button"
+          className={`pause-btn${paused ? ' paused' : ''}`}
+          onClick={togglePause}
+          aria-label={paused ? 'Resume tracking' : 'Pause tracking'}
+          title={paused ? 'Resume tracking' : 'Pause tracking'}
+        >
+          {paused ? (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+              <path d="M3.5 1.5v11l9-5.5z" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+              <rect x="2.5" y="1.5" width="3.2" height="11" rx="1" />
+              <rect x="8.3" y="1.5" width="3.2" height="11" rx="1" />
+            </svg>
+          )}
+        </button>
       </header>
       <AddTaskForm onPush={push} />
       <div className="stack-box">
@@ -217,8 +288,9 @@ export default function App() {
                       isPopping={item.id === popping?.id}
                       drift={item.id === popping?.id ? popping.drift : 0}
                       depth={reverseIndex}
-                      now={now}
+                      now={effectiveNow}
                       focusMs={item.id === topId ? focusMs : null}
+                      paused={paused}
                       onDone={pop}
                       onRename={renameItem}
                     />

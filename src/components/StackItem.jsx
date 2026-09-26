@@ -7,7 +7,7 @@ import LinkChips from './LinkChips'
 import LinkPopover from './LinkPopover'
 import { formatDuration, formatAge } from '../lib/format'
 
-export default function StackItem({ item, isTop, isPopping, drift, depth, now, focusMs, onDone, onRename }) {
+export default function StackItem({ item, isTop, isPopping, drift, depth, now, focusMs, paused, onDone, onRename }) {
   const [editing, setEditing] = useState(false)
   const edit = useLinkableText()
   const pointerStart = useRef(null)
@@ -65,7 +65,10 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
       {isTop && (
         <div className="focus-meta">
           <span className="focus-label">Current focus</span>
-          <span className="time-badge">{formatDuration(focusMs)}</span>
+          <span className={`time-badge${paused ? ' paused' : ''}`}>
+            {formatDuration(focusMs)}
+            {paused ? ' · paused' : ''}
+          </span>
         </div>
       )}
       <div className="item-row">
