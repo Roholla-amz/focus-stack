@@ -421,9 +421,10 @@
 }
 
 .done-toggle {
-  position: absolute;
-  left: 100%;
+  position: fixed;
+  left: 0;
   top: 96px;
+  z-index: 61;
   writing-mode: vertical-rl;
   display: flex;
   align-items: center;
@@ -439,13 +440,23 @@
   letter-spacing: 0.06em;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  transition: filter 0.15s, background 0.15s;
+  transition: filter 0.15s, background 0.15s, left 0.28s ease;
 }
 
 .done-toggle:hover,
 .done-toggle.open {
   background: var(--surface);
   filter: brightness(1.15);
+}
+
+.done-toggle.open {
+  left: 320px;
+}
+
+.done-toggle-badge,
+.done-toggle-icon,
+.done-backdrop {
+  display: none;
 }
 
 .done-toggle-arrow {
@@ -639,5 +650,87 @@
   100% {
     transform: translate(calc(var(--drift, 0px) * 1.5), 130px) rotate(var(--tilt, 9deg)) scale(0.92);
     opacity: 0;
+  }
+}
+
+@media (max-width: 639px) {
+  .app {
+    padding-top: 64px;
+  }
+
+  .done-toggle {
+    left: 12px;
+    top: 12px;
+    z-index: 50;
+    writing-mode: horizontal-tb;
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+    border-radius: 10px;
+  }
+
+  .done-toggle.open {
+    left: 12px;
+  }
+
+  .done-toggle-arrow,
+  .done-toggle-label {
+    display: none;
+  }
+
+  .done-toggle:hover {
+    border-color: var(--accent);
+    filter: none;
+  }
+
+  .done-toggle-icon {
+    width: 18px;
+    height: 18px;
+    display: block;
+    color: var(--text-dim);
+    background-color: currentColor;
+    -webkit-mask-image: url('./assets/icons/menu.svg');
+    -webkit-mask-size: contain;
+    -webkit-mask-position: center;
+    -webkit-mask-repeat: no-repeat;
+    mask-image: url('./assets/icons/menu.svg');
+    mask-size: contain;
+    mask-position: center;
+    mask-repeat: no-repeat;
+  }
+
+  .done-toggle:hover .done-toggle-icon,
+  .done-toggle.open .done-toggle-icon {
+    color: var(--text);
+  }
+
+  .done-toggle-badge {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: var(--accent);
+    color: #14161f;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .done-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 55;
   }
 }

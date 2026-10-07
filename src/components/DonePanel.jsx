@@ -16,11 +16,12 @@ export default function DonePanel({ done, onRemove, onUndo }) {
   const [open, setOpen] = useState(false)
 
   return (
-    <aside className={`done-panel${open ? ' open' : ''}`} aria-label="Completed tasks">
+    <>
       <button
         type="button"
         className={`done-toggle${open ? ' open' : ''}`}
         aria-expanded={open}
+        aria-label={open ? 'Hide completed tasks' : `Show completed tasks${done.length > 0 ? ` (${done.length})` : ''}`}
         title={open ? 'Hide completed tasks' : 'Show completed tasks'}
         onClick={() => setOpen((o) => !o)}
       >
@@ -28,7 +29,11 @@ export default function DonePanel({ done, onRemove, onUndo }) {
         <span className="done-toggle-label">
           Done{done.length > 0 ? ` (${done.length})` : ''}
         </span>
+        {done.length > 0 && <span className="done-toggle-badge">{done.length}</span>}
+        <span className="done-toggle-icon" aria-hidden="true" />
       </button>
+      {open && <div className="done-backdrop" onClick={() => setOpen(false)} />}
+      <aside className={`done-panel${open ? ' open' : ''}`} aria-label="Completed tasks">
       <div className="done-panel-inner">
         <header className="done-panel-head">
           <h2 className="done-panel-title">Done</h2>
@@ -75,5 +80,6 @@ export default function DonePanel({ done, onRemove, onUndo }) {
         )}
       </div>
     </aside>
+    </>
   )
 }
