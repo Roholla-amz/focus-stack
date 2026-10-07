@@ -42,6 +42,18 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
 
   const cancel = () => setEditing(false)
 
+  const handleEditBlur = (e) => {
+    const to = e.relatedTarget
+    if (
+      to &&
+      to.closest &&
+      (e.currentTarget.closest('.stack-item')?.contains(to) || to.closest('.link-popover'))
+    ) {
+      return
+    }
+    commit()
+  }
+
   const classes = ['stack-item']
   if (isTop) classes.push('top')
   if (isPopping) classes.push('popping')
@@ -85,8 +97,8 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
             {...edit.inputProps}
             className="edit-input"
             type="text"
-            maxLength={80}
             onPointerDown={(e) => e.stopPropagation()}
+            onBlur={handleEditBlur}
             onKeyDown={(e) => {
               e.stopPropagation()
               if (e.key === 'Enter') commit()
@@ -113,12 +125,8 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
               }}
             >
               <LinkedText text={item.text} links={item.links} />
-               {/* // <button className="edit-btn" onKeyDown={(e) => e.stopPropagation()}>
-          //   Edit
-          // </button> */}
-            {itemIsHovered && <img src={EditIconSvg} class="edit-icon" /> 
-            }
-            </span>           
+              {itemIsHovered && <img src={EditIconSvg} className="edit-icon" alt="" />}
+            </span>
         )}
         {!isTop && now - item.createdAt >= 60000 && (
           <span className="wait-age">waiting {formatAge(now - item.createdAt)}</span>
@@ -134,7 +142,16 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
           </button>
         )}
       </div>
-      {editing && <LinkChips text={edit.text} links={edit.links} onRemove={edit.removeLink} />}
+      {editing && (
+        <LinkChips
+          text={edit.text}
+          links={edit.links}
+          onRemove={(link) => {
+            edit.removeLink(link)
+            edit.inputProps.ref.current?.focus()
+          }}
+        />
+      )}
       {editing && edit.popover && (
         <LinkPopover
           key={`${edit.popover.start}:${edit.popover.end}`}
