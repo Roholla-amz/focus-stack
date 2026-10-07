@@ -22,7 +22,6 @@ export default function AddTaskForm({ onPush }) {
           className="add-input"
           type="text"
           placeholder="What needs your focus?"
-          maxLength={80}
           autoFocus
         />
         <button className="add-btn" type="submit" disabled={field.text.trim().length === 0}>

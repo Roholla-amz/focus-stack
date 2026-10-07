@@ -6,11 +6,13 @@ import LinkedText from './LinkedText'
 import LinkChips from './LinkChips'
 import LinkPopover from './LinkPopover'
 import { formatDuration, formatAge } from '../lib/format'
+import EditIconSvg from "../assets/icon/edit.svg";
 
 export default function StackItem({ item, isTop, isPopping, drift, depth, now, focusMs, paused, onDone, onRename }) {
   const [editing, setEditing] = useState(false)
   const edit = useLinkableText()
   const pointerStart = useRef(null)
+  const [itemIsHovered, setItemIsHovered] = useState(false);
 
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -44,6 +46,11 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
   if (isTop) classes.push('top')
   if (isPopping) classes.push('popping')
   if (isDragging) classes.push('dragging')
+  
+  const hover = () => setItemIsHovered(true);
+  const unHover = () => setTimeout(() => {
+    setItemIsHovered(false);
+  }, 500); 
 
   return (
     <li
@@ -87,31 +94,43 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
             }}
           />
         ) : (
-          <span
-            className="item-text"
-            role="button"
-            tabIndex={0}
-            aria-label={`Edit task: ${item.text}`}
-            title="Click to edit"
-            onClick={startEdit}
-            onKeyDown={(e) => {
-              e.stopPropagation()
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                edit.beginEdit(item.text, item.links ?? [])
-                setEditing(true)
-              }
-            }}
-          >
-            <LinkedText text={item.text} links={item.links} />
-          </span>
+            <span
+              className="item-text"
+              role="button"
+              tabIndex={0}
+              aria-label={`Edit task: ${item.text}`}
+              title="Click to edit"
+              onClick={startEdit}
+              onMouseEnter={hover}
+              onMouseLeave={unHover}
+              onKeyDown={(e) => {
+                e.stopPropagation()
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  edit.beginEdit(item.text, item.links ?? [])
+                  setEditing(true)
+                }
+              }}
+            >
+              <LinkedText text={item.text} links={item.links} />
+               {/* // <button className="edit-btn" onKeyDown={(e) => e.stopPropagation()}>
+          //   Edit
+          // </button> */}
+            {itemIsHovered && <img src={EditIconSvg} class="edit-icon" /> 
+            }
+            </span>           
         )}
         {!isTop && now - item.createdAt >= 60000 && (
           <span className="wait-age">waiting {formatAge(now - item.createdAt)}</span>
         )}
-        {isTop && (
+        {isTop && !editing && (
           <button className="done-btn" onClick={onDone} onKeyDown={(e) => e.stopPropagation()}>
             Done
+          </button>
+        )}
+         {editing && (
+          <button className="done-btn" onClick={commit} onKeyDown={(e) => e.stopPropagation()}>
+            Submit
           </button>
         )}
       </div>

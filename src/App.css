@@ -554,6 +554,13 @@
   background: rgba(244, 114, 182, 0.12);
 }
 
+.edit-icon {
+  width: 16px;
+  height: 16px;
+  filter: invert(75%);
+  cursor: pointer;
+}
+
 @keyframes done-in {
   from {
     opacity: 0;
