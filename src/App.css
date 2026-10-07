@@ -536,6 +536,26 @@
   opacity: 0.75;
 }
 
+.done-undo {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+
+.done-undo:hover {
+  color: var(--green);
+  background: rgba(52, 211, 153, 0.12);
+}
+
 .done-remove {
   flex: 0 0 auto;
   border: none;

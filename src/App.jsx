@@ -177,6 +177,21 @@ export default function App() {
     setState((prev) => ({ ...prev, done: prev.done.filter((item) => item.id !== id) }))
   }
 
+  const undoDone = (id) => {
+    setState((prev) => {
+      const item = prev.done.find((d) => d.id === id)
+      if (!item) return prev
+      const now = Date.now()
+      const settled = settleFocus(prev.stack, prev.topSince, now)
+      return {
+        ...prev,
+        stack: [...settled.stack, { ...item, doneAt: null }],
+        done: prev.done.filter((d) => d.id !== id),
+        topSince: prev.paused ? null : now,
+      }
+    })
+  }
+
   const pop = () => {
     if (stack.length === 0 || popping) return
     const top = stack[stack.length - 1]
@@ -364,7 +379,7 @@ export default function App() {
           />
         </div>
       )}
-      <DonePanel done={done} onRemove={removeDone} />
+      <DonePanel done={done} onRemove={removeDone} onUndo={undoDone} />
     </main>
   )
 }

@@ -12,7 +12,7 @@ function formatTime(ts) {
   })
 }
 
-export default function DonePanel({ done, onRemove }) {
+export default function DonePanel({ done, onRemove, onUndo }) {
   const [open, setOpen] = useState(false)
 
   return (
@@ -53,6 +53,28 @@ export default function DonePanel({ done, onRemove }) {
                     )}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className="done-undo"
+                  aria-label={`Put back on stack: ${item.text}`}
+                  title="Put back on stack"
+                  onClick={() => onUndo(item.id)}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M9 14 4 9l5-5" />
+                    <path d="M4 9h10a6 6 0 0 1 0 12h-3" />
+                  </svg>
+                </button>
                 <button
                   type="button"
                   className="done-remove"
