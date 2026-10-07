@@ -6,7 +6,7 @@ import LinkedText from './LinkedText'
 import LinkChips from './LinkChips'
 import LinkPopover from './LinkPopover'
 import { formatDuration, formatAge } from '../lib/format'
-import EditIconSvg from "../assets/icon/edit.svg";
+import EditIconSvg from "../assets/icons/edit.svg";
 
 export default function StackItem({ item, isTop, isPopping, drift, depth, now, focusMs, paused, onDone, onRename }) {
   const [editing, setEditing] = useState(false)
