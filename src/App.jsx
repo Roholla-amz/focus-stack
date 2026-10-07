@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import confetti from 'canvas-confetti'
 import {
   DndContext,
@@ -102,6 +102,9 @@ export default function App() {
   const [{ stack, done, topSince, paused, pausedSince, pausedTotalMs }, setState] = useState(loadState)
   const [popping, setPopping] = useState(null)
   const [now, setNow] = useState(() => Date.now())
+  const [flipTick, setFlipTick] = useState(0)
+  const stackListRef = useRef(null)
+  const flipFirst = useRef(null)
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000)
@@ -226,6 +229,53 @@ export default function App() {
     })
   }
 
+  const reverseStack = () => {
+    if (stack.length < 2 || popping) return
+    const first = new Map()
+    stackListRef.current?.querySelectorAll('.stack-item').forEach((li) => {
+      first.set(li.dataset.id, li.getBoundingClientRect().top)
+    })
+    flipFirst.current = first
+    setFlipTick((t) => t + 1)
+    setState((prev) => {
+      const now = Date.now()
+      const settled = settleFocus(prev.stack, prev.topSince, now)
+      return {
+        ...prev,
+        stack: settled.stack.slice().reverse(),
+        topSince: prev.paused ? null : settled.topSince,
+      }
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (flipTick === 0) return
+    const list = stackListRef.current
+    const first = flipFirst.current
+    flipFirst.current = null
+    if (!list || !first || first.size === 0) return
+    const anims = []
+    list.querySelectorAll('.stack-item').forEach((li) => {
+      const from = first.get(li.dataset.id)
+      if (typeof from !== 'number') return
+      const dy = from - li.getBoundingClientRect().top
+      if (Math.abs(dy) < 1) return
+      li.style.pointerEvents = 'none'
+      const anim = li.animate(
+        [{ transform: `translateY(${dy}px)` }, { transform: 'translateY(0)' }],
+        { duration: 1250, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' }
+      )
+      const restore = () => {
+        li.style.pointerEvents = ''
+      }
+      anim.finished.then(restore).catch(restore)
+      anims.push(anim)
+    })
+    return () => {
+      anims.forEach((a) => a.cancel())
+    }
+  }, [flipTick])
+
   const topItem = stack.length > 0 ? stack[stack.length - 1] : null
   const topId = topItem?.id ?? null
   const focusMs = topItem
@@ -276,7 +326,7 @@ export default function App() {
               items={stack.slice().reverse().map((item) => item.id)}
               strategy={verticalListSortingStrategy}
             >
-              <ol className="stack">
+              <ol className="stack" ref={stackListRef}>
                 {stack
                   .slice()
                   .reverse()
@@ -301,9 +351,18 @@ export default function App() {
         )}
       </div>
       {waiting > 0 && (
-        <p className="depth-hint">
-          {waiting} task{waiting === 1 ? '' : 's'} waiting underneath
-        </p>
+        <div className="depth-hint">
+          <span className="depth-hint-text">
+            {waiting} task{waiting === 1 ? '' : 's'} waiting underneath
+          </span>
+          <button
+            type="button"
+            className="reverse-btn"
+            onClick={reverseStack}
+            aria-label="Reverse stack"
+            title="Reverse stack"
+          />
+        </div>
       )}
       <DonePanel done={done} onRemove={removeDone} />
     </main>

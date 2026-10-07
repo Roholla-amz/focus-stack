@@ -129,6 +129,7 @@
   border-radius: 12px;
   filter: brightness(calc(1 - min(var(--depth, 0) * 0.14, 0.55)));
   animation: drop-in 0.55s ease-out;
+  transition: filter 0.45s, border-color 0.3s, box-shadow 0.3s, background 0.3s;
   touch-action: none;
   cursor: grab;
 }
@@ -355,9 +356,46 @@
 }
 
 .depth-hint {
-  text-align: center;
+  display: flex;
+  align-items: center;
   color: var(--text-dim);
   font-size: 0.85rem;
+}
+
+.depth-hint-text {
+  flex: 1;
+  text-align: center;
+}
+
+.reverse-btn {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: none;
+  background-color: currentColor;
+  color: var(--text-dim);
+  opacity: 0.55;
+  cursor: pointer;
+  -webkit-mask-image: url('./assets/icons/reverse.svg');
+  -webkit-mask-size: contain;
+  -webkit-mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-image: url('./assets/icons/reverse.svg');
+  mask-size: contain;
+  mask-position: center;
+  mask-repeat: no-repeat;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.reverse-btn:hover {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.reverse-btn:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .stack-item.popping {

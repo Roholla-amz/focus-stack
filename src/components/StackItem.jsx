@@ -48,6 +48,7 @@ export default function StackItem({ item, isTop, isPopping, drift, depth, now, f
   return (
     <li
       ref={setNodeRef}
+      data-id={item.id}
       className={classes.join(' ')}
       style={{
         '--depth': depth,
