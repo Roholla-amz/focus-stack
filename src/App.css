@@ -130,7 +130,8 @@
   filter: brightness(calc(1 - min(var(--depth, 0) * 0.14, 0.55)));
   animation: drop-in 0.55s ease-out;
   transition: filter 0.45s, border-color 0.3s, box-shadow 0.3s, background 0.3s;
-  touch-action: none;
+  touch-action: manipulation;
+  user-select: none;
   cursor: grab;
 }
 
@@ -247,6 +248,8 @@
   color: var(--text);
   font: inherit;
   outline: none;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .done-btn {
